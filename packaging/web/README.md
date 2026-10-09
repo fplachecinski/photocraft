@@ -14,6 +14,10 @@ There is no server-side code. Upload the folder's contents anywhere that serves 
 
 ## Docker
 
+> The Docker recipe (`Dockerfile`, `.dockerignore`, `packaging/web/nginx.conf`) is
+> **community-maintained**: it is not built in CI or used for releases, so it can lag behind the
+> official web build above. Fixes are welcome.
+
 From the repository root (Docker is the only build prerequisite):
 
 ```sh
@@ -31,8 +35,11 @@ database, GPU passthrough, or document volume is needed on the host.
 
 The first build downloads Rust dependencies and Trunk's Wasm tools and can take several
 minutes. Subsequent builds reuse Cargo caches. The builder supports Linux amd64 and arm64;
-the default Rust version is 1.95 and Trunk is pinned to 0.21.14, matching the release workflow.
-`RUST_VERSION`, `TRUNK_VERSION`, and `NGINX_VERSION` can be overridden with `--build-arg`.
+the default Rust version is the stable release CI used when the `Dockerfile` was last updated
+(CI and releases always use the latest stable), and Trunk is pinned to the release workflow's
+`TRUNK_VERSION`. `RUST_VERSION`, `TRUNK_VERSION`, and `NGINX_VERSION` can be overridden with
+`--build-arg`. To stamp the About dialog with the commit and date instead of "dev build", pass
+`--build-arg PHOTOCRAFT_BUILD_SHA=$(git rev-parse HEAD) --build-arg PHOTOCRAFT_BUILD_DATE=$(date -u +%F)`.
 The web build does not embed the optional `craft-fonts` checkout.
 
 The Docker build uses thin LTO and one Cargo build job to reduce peak memory, while keeping

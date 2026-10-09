@@ -1,9 +1,16 @@
 # syntax=docker/dockerfile:1
-ARG RUST_VERSION=1.95
+# Community-maintained self-hosting recipe (see packaging/web/README.md#docker); the official
+# web build is the `web` job in .github/workflows/release.yml (packaging/web/package.sh).
+#
+# Source of truth for the toolchain: release.yml and ci.yml build with the latest *stable* Rust
+# (dtolnay/rust-toolchain@stable), not a pinned version. This default is the stable release CI
+# used when it was last bumped; raise it when CI's stable moves on. It must stay >= the
+# workspace `rust-version` in Cargo.toml.
+ARG RUST_VERSION=1.99
 ARG NGINX_VERSION=1.28-alpine
 
 FROM rust:${RUST_VERSION}-slim-bookworm AS builder
-# Keep aligned with .github/workflows/release.yml.
+# Must match `TRUNK_VERSION` in the `web` job of .github/workflows/release.yml.
 ARG TRUNK_VERSION=0.21.14
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
@@ -32,6 +39,12 @@ WORKDIR /src/apps/photocraft-web
 # memory than the release zip's fat LTO; retain the profile's other optimizations.
 ARG CARGO_PROFILE_WASM_RELEASE_LTO=thin
 ARG CARGO_BUILD_JOBS=1
+# Optional build provenance shown in About and `--version` (crates/engine/src/build_info.rs).
+# .git is not in the build context, so pass it in, e.g.
+#   --build-arg PHOTOCRAFT_BUILD_SHA=$(git rev-parse HEAD) --build-arg PHOTOCRAFT_BUILD_DATE=$(date -u +%F)
+# Left empty, the build reports itself as a dev build.
+ARG PHOTOCRAFT_BUILD_SHA=
+ARG PHOTOCRAFT_BUILD_DATE=
 # index.html selects the wasm-release profile, HEIF support and wasm-opt -Oz.
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/src/target \
